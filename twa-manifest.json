@@ -1,0 +1,21 @@
+{
+  "packageId": "app.pedalspower.twa",
+  "host": "REPLACE_WITH_HOSTED_DOMAIN",
+  "name": "Pedal Powers",
+  "launcherName": "Pedal Powers",
+  "display": "standalone",
+  "themeColor": "#133c3a",
+  "navigationColor": "#133c3a",
+  "backgroundColor": "#f4ecdf",
+  "startUrl": "/",
+  "iconUrl": "https://REPLACE_WITH_HOSTED_DOMAIN/icons/icon-512.png",
+  "maskableIconUrl": "https://REPLACE_WITH_HOSTED_DOMAIN/icons/maskable-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": false
+  }
+}
