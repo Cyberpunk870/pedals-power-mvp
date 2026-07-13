@@ -1,4 +1,4 @@
-import type { DashboardSnapshot } from './types'
+import type { CertificateJob, DashboardSnapshot, PosterJob } from './types'
 
 async function request<T>(input: string, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
@@ -49,14 +49,14 @@ export function selectActivity(participantId: string, activityId: number) {
 }
 
 export function createPoster(payload: Record<string, unknown>) {
-  return request<{ snapshot: DashboardSnapshot }>('/api/posters', {
+  return request<{ poster: PosterJob, snapshot: DashboardSnapshot }>('/api/posters', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export function createCertificate(participantId: string) {
-  return request<{ snapshot: DashboardSnapshot }>('/api/certificates', {
+  return request<{ certificate: CertificateJob, snapshot: DashboardSnapshot }>('/api/certificates', {
     method: 'POST',
     body: JSON.stringify({ participantId }),
   })

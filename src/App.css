@@ -412,6 +412,10 @@
   font-size: 0.9rem;
 }
 
+.metric-input {
+  text-align: center;
+}
+
 .field-label {
   font-size: 0.84rem;
   color: var(--muted);

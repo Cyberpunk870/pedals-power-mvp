@@ -18,7 +18,7 @@ The TWA cannot point to localhost, a tunnel URL, or a temporary preview URL for 
 
 You need:
 
-- one production host such as `app.pedalspower.com`
+- one production host such as `42hy.shop`
 - working HTTPS
 - the PWA deployed there
 - `/.well-known/assetlinks.json` served from that domain
@@ -47,16 +47,16 @@ Replace:
 
 With your real host, for example:
 
-- `app.pedalspower.com`
+- `42hy.shop`
 
 The final values should look like:
 
 ```json
 {
   "packageId": "app.pedalspower.twa",
-  "host": "app.pedalspower.com",
-  "iconUrl": "https://app.pedalspower.com/icons/icon-512.png",
-  "maskableIconUrl": "https://app.pedalspower.com/icons/maskable-512.png"
+  "host": "42hy.shop",
+  "iconUrl": "https://42hy.shop/icons/icon-512.png",
+  "maskableIconUrl": "https://42hy.shop/icons/maskable-512.png"
 }
 ```
 

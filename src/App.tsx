@@ -9,10 +9,11 @@ import {
   selectActivity,
   updateParticipant,
 } from './api'
-import type { ActivityKind, ActivitySource, DashboardSnapshot, Participant } from './types'
+import type { ActivityKind, ActivitySource, CertificateJob, DashboardSnapshot, Participant, PosterJob } from './types'
 
 type Tab = 'home' | 'challenge' | 'assets' | 'profile'
 type ChallengeStep = 'register' | 'activity' | 'proof' | 'assets'
+const currentAssetTemplateVersion = '2026-07-template-v19'
 
 const activityOptions: ActivityKind[] = [
   'Cycling',
@@ -81,6 +82,13 @@ function formatDateTime(value: string) {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+function formatDuration(minutes: number) {
+  const totalMinutes = Number(minutes) || 0
+  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0')
+  const mins = String(totalMinutes % 60).padStart(2, '0')
+  return `${hours}:${mins}:00`
 }
 
 async function downloadFile(url: string, filename: string) {
@@ -166,7 +174,7 @@ function challengeArtworkUrl(photoDataUrl: string) {
   `)
 }
 
-function sampleCertificatePreviewUrl(name: string, distanceLabel: string) {
+function sampleCertificatePreviewUrl(name: string, distanceLabel: string, durationLabel: string, dateLabel: string) {
   return svgDataUrl(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 840">
       <rect width="1200" height="840" fill="#fbf8f2"/>
@@ -176,8 +184,9 @@ function sampleCertificatePreviewUrl(name: string, distanceLabel: string) {
       <text x="600" y="244" text-anchor="middle" fill="#123979" font-family="Arial" font-size="44" font-weight="700">OF ACHIEVEMENT</text>
       <text x="600" y="332" text-anchor="middle" fill="#2f456c" font-family="Arial" font-size="28">This certificate is given to</text>
       <text x="600" y="424" text-anchor="middle" fill="#123979" font-family="Georgia" font-size="72" font-weight="700">${name.toUpperCase()}</text>
-      <text x="600" y="492" text-anchor="middle" fill="#334d73" font-family="Arial" font-size="28">For successfully completing the Pedals Power one-day challenge</text>
-      <text x="266" y="632" text-anchor="middle" fill="#3d4f70" font-family="Arial" font-size="30">01:20:00</text>
+      <text x="600" y="492" text-anchor="middle" fill="#334d73" font-family="Arial" font-size="24">For successfully completing World Bicycle Day Virtual Challenge 2026 held on 1st-7th June</text>
+      <text x="600" y="532" text-anchor="middle" fill="#334d73" font-family="Arial" font-size="24">${dateLabel}</text>
+      <text x="266" y="632" text-anchor="middle" fill="#3d4f70" font-family="Arial" font-size="30">${durationLabel}</text>
       <text x="266" y="682" text-anchor="middle" fill="#111" font-family="Arial" font-size="44" font-weight="800">DURATION</text>
       <text x="924" y="632" text-anchor="middle" fill="#3d4f70" font-family="Arial" font-size="30">${distanceLabel}</text>
       <text x="924" y="682" text-anchor="middle" fill="#111" font-family="Arial" font-size="44" font-weight="800">DISTANCE</text>
@@ -214,6 +223,8 @@ export default function App() {
   const [manualActivity, setManualActivity] = useState(emptyManualActivity)
   const [profileDraft, setProfileDraft] = useState<ReturnType<typeof participantToDraft> | null>(null)
   const [isMoreOpen, setIsMoreOpen] = useState(false)
+  const [generatedPoster, setGeneratedPoster] = useState<PosterJob | null>(null)
+  const [generatedCertificate, setGeneratedCertificate] = useState<CertificateJob | null>(null)
 
   async function bootDashboard(retries = 0) {
     try {
@@ -249,10 +260,14 @@ export default function App() {
   useEffect(() => {
     if (!selectedParticipant) {
       setProfileDraft(null)
+      setGeneratedPoster(null)
+      setGeneratedCertificate(null)
       return
     }
 
     setProfileDraft(participantToDraft(selectedParticipant))
+    setGeneratedPoster(null)
+    setGeneratedCertificate(null)
     setManualActivity((current) => ({
       ...current,
       activityType: selectedParticipant.selectedChallenge,
@@ -266,18 +281,40 @@ export default function App() {
   }, [selectedParticipant, snapshot])
 
   const selectedActivity = useMemo(() => {
-    return participantActivities.find((activity) => activity.selected) ?? null
+    return participantActivities.find((activity) => activity.selected) ?? participantActivities[0] ?? null
   }, [participantActivities])
 
-  const latestPoster = useMemo(() => {
+  const latestPosterFromSnapshot = useMemo(() => {
     if (!snapshot || !selectedParticipant) return null
-    return snapshot.posterJobs.find((job) => job.participantId === selectedParticipant.id) ?? null
+    return (
+      snapshot.posterJobs.find(
+        (job) => job.participantId === selectedParticipant.id && job.templateVersion === currentAssetTemplateVersion,
+      ) ?? null
+    )
   }, [selectedParticipant, snapshot])
 
-  const latestCertificate = useMemo(() => {
+  const latestCertificateFromSnapshot = useMemo(() => {
     if (!snapshot || !selectedParticipant) return null
-    return snapshot.certificateJobs.find((job) => job.participantId === selectedParticipant.id) ?? null
+    return (
+      snapshot.certificateJobs.find(
+        (job) => job.participantId === selectedParticipant.id && job.templateVersion === currentAssetTemplateVersion,
+      ) ?? null
+    )
   }, [selectedParticipant, snapshot])
+
+  const latestPoster = useMemo(() => {
+    if (generatedPoster && selectedParticipant && generatedPoster.participantId === selectedParticipant.id) {
+      return generatedPoster
+    }
+    return latestPosterFromSnapshot
+  }, [generatedPoster, latestPosterFromSnapshot, selectedParticipant])
+
+  const latestCertificate = useMemo(() => {
+    if (generatedCertificate && selectedParticipant && generatedCertificate.participantId === selectedParticipant.id) {
+      return generatedCertificate
+    }
+    return latestCertificateFromSnapshot
+  }, [generatedCertificate, latestCertificateFromSnapshot, selectedParticipant])
 
   const homeChallengeArt = useMemo(
     () => challengeArtworkUrl(selectedParticipant?.photoDataUrl || selectedActivity?.activityPhotoDataUrl || ''),
@@ -291,6 +328,8 @@ export default function App() {
       sampleCertificatePreviewUrl(
         selectedParticipant?.name || 'Participant Name',
         selectedActivity ? `${selectedActivity.distanceKm.toFixed(1)} KM` : '12.4 KM',
+        selectedActivity ? formatDuration(selectedActivity.durationMinutes) : '01:20:00',
+        selectedActivity ? formatDate(selectedActivity.date) : '15 Jul 2026',
       ),
     [selectedActivity, selectedParticipant],
   )
@@ -301,10 +340,6 @@ export default function App() {
   const stravaStatus = selectedParticipant?.socials.strava
     ? 'Strava link saved'
     : 'Add Strava link in profile'
-  const shopifyStatus = selectedParticipant?.registrationId
-    ? `Registered as ${selectedParticipant.registrationId}`
-    : 'No synced order yet'
-
   async function runAction(label: string, action: () => Promise<{ snapshot: DashboardSnapshot }>) {
     setBusy(label)
     setError(null)
@@ -332,6 +367,42 @@ export default function App() {
       setBanner(label)
     } catch (actionError) {
       const message = actionError instanceof Error ? actionError.message : 'Download failed.'
+      setError(message)
+      setBanner(`Action failed: ${message}`)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function handlePosterGenerate() {
+    if (!selectedParticipant) return
+    setBusy('Generating poster...')
+    setError(null)
+    try {
+      const result = await createPoster({ participantId: selectedParticipant.id })
+      setGeneratedPoster(result.poster)
+      setSnapshot(result.snapshot)
+      setBanner('Poster generated.')
+    } catch (actionError) {
+      const message = actionError instanceof Error ? actionError.message : 'Request failed.'
+      setError(message)
+      setBanner(`Action failed: ${message}`)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function handleCertificateGenerate() {
+    if (!selectedParticipant) return
+    setBusy('Generating certificate...')
+    setError(null)
+    try {
+      const result = await createCertificate(selectedParticipant.id)
+      setGeneratedCertificate(result.certificate)
+      setSnapshot(result.snapshot)
+      setBanner('Certificate generated.')
+    } catch (actionError) {
+      const message = actionError instanceof Error ? actionError.message : 'Request failed.'
       setError(message)
       setBanner(`Action failed: ${message}`)
     } finally {
@@ -646,11 +717,11 @@ export default function App() {
             </label>
             <label>
               <span className="field-label">Distance in km</span>
-              <input required type="number" step="0.1" placeholder="12.4" value={manualActivity.distanceKm} onChange={(event) => setManualActivity((current) => ({ ...current, distanceKm: event.target.value }))} />
+              <input className="metric-input" required type="number" step="0.1" placeholder="12.4" value={manualActivity.distanceKm} onChange={(event) => setManualActivity((current) => ({ ...current, distanceKm: event.target.value }))} />
             </label>
             <label>
               <span className="field-label">Duration in minutes</span>
-              <input required type="number" placeholder="80" value={manualActivity.durationMinutes} onChange={(event) => setManualActivity((current) => ({ ...current, durationMinutes: event.target.value }))} />
+              <input className="metric-input" required type="number" placeholder="80" value={manualActivity.durationMinutes} onChange={(event) => setManualActivity((current) => ({ ...current, durationMinutes: event.target.value }))} />
             </label>
             <label>
               <span className="field-label">Activity date</span>
@@ -733,7 +804,7 @@ export default function App() {
         <button
           type="button"
           className="dark-button"
-          disabled={busy !== null || !selectedParticipant || !selectedActivity}
+          disabled={busy !== null || !selectedParticipant || (!latestPoster && !selectedActivity)}
           onClick={() => {
             if (latestPoster) {
               runDownload('Poster downloaded.', () =>
@@ -743,7 +814,7 @@ export default function App() {
             }
 
             if (!selectedParticipant) return
-            runAction('Poster generated.', () => createPoster({ participantId: selectedParticipant.id }))
+            handlePosterGenerate()
           }}
         >
           {latestPoster ? 'Download poster' : 'Generate poster'}
@@ -766,7 +837,7 @@ export default function App() {
           <button
             type="button"
             className="dark-button"
-            disabled={busy !== null || !selectedParticipant || !selectedActivity}
+            disabled={busy !== null || !selectedParticipant || (!latestCertificate && !selectedActivity)}
             onClick={() => {
               if (latestCertificate) {
                 runDownload('Certificate downloaded.', () =>
@@ -776,7 +847,7 @@ export default function App() {
               }
 
               if (!selectedParticipant) return
-              runAction('Certificate generated.', () => createCertificate(selectedParticipant.id))
+              handleCertificateGenerate()
             }}
           >
             {latestCertificate ? 'Download certificate' : 'Generate certificate'}
@@ -947,17 +1018,6 @@ export default function App() {
                 >
                   <strong>Connect Strava</strong>
                   <small>{stravaStatus}</small>
-                </button>
-                <button
-                  type="button"
-                  className="more-item"
-                  onClick={() => {
-                    setIsMoreOpen(false)
-                    setBanner('Shopify registration status will appear here once the live webhook is connected.')
-                  }}
-                >
-                  <strong>Shopify registration status</strong>
-                  <small>{shopifyStatus}</small>
                 </button>
               </div>
               <div className="more-group">

@@ -98,6 +98,7 @@ export type PosterJob = {
   participantId: string
   previewTitle: string
   createdAt: string
+  templateVersion?: string
   imageUrl: string
 }
 
@@ -106,6 +107,7 @@ export type CertificateJob = {
   participantId: string
   title: string
   issuedOn: string
+  templateVersion?: string
   pngUrl: string
   pdfUrl: string
 }

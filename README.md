@@ -5,7 +5,7 @@
 The current repository focuses on an independent participant journey:
 
 - Registration
-- Shopify-backed registration intake via webhook
+- Optional backend Shopify order sync via webhook
 - Social profile linking
 - Local or live registration confirmations by email and SMS
 - Activity proof submission with tracker screenshot and participant activity photo
@@ -53,13 +53,13 @@ Real delivery is optional. If credentials are missing, the app still works and l
 
 Create a `.env` file from `.env.example` and fill only the providers you want to enable.
 
-## Shopify setup
+## Shopify backend sync
 
-The backend now exposes a verified Shopify webhook endpoint:
+The backend still exposes a verified Shopify webhook endpoint for admin-side sync:
 
 - `POST /api/integrations/shopify/webhook`
 
-Use it with a standalone Shopify custom app owned for `Pedals Power`.
+Use it with a standalone Shopify custom app owned for `Pedals Power` only if you want Shopify to feed registrations into the backend. The participant-facing app no longer depends on Shopify login or Shopify checkout.
 
 Required vars:
 
@@ -76,7 +76,7 @@ Recommended topic for production:
 
 - `orders/paid`
 
-Order data is mapped into a participant registration using:
+If used, order data is mapped into a participant registration using:
 
 - customer name
 - email
@@ -85,6 +85,8 @@ Order data is mapped into a participant registration using:
 - note attributes such as `activity_type`, `planned_activity_date`, `tshirt_size`, and `challenge_id`
 
 The webhook flow is idempotent by `shopify-order-{order.id}`, so Shopify retries do not create duplicate participants.
+
+For the best participant UX, use the in-app Pedals Power registration flow as the primary entrypoint and keep Shopify as an optional backend/admin integration.
 
 ## Firebase setup
 
@@ -149,6 +151,10 @@ Key files:
 - `docs/play-store-listing.md`
 - `public/store/play-store-icon-512.png`
 - `public/store/play-store-feature-graphic-1024x500.png`
+
+Current production host target in repo metadata:
+
+- `42hy.shop`
 
 ## Main files
 
